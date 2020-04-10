@@ -61,11 +61,48 @@ if (!settings.auth_token) {
     }
 } else {
     var knownUsers = {};
-    var activeColor = { r: 0, g: 0, b: 0 };
     var usersNum = 0;
     const hue = new HueAPI(settings.hue_bridge_ip, settings.hue_bridge_key);
+
+    function calculateAndSetNewColor(user, active) {
+        if (!knownUsers[user.id]) {
+            knownUsers[user.id] = { ...user, lamp_id: settings.lamp_id, color: settings.lamp_colors[usersNum % settings.lamp_colors.length], active: active };
+            usersNum++;
+        }
+        knownUsers[user.id].active = active;
+        var colorSum = {}
+        var peopleTalking = {};
+        for (const userId in knownUsers) {
+            if (knownUsers.hasOwnProperty(userId)) {
+                const user = knownUsers[userId];
+                if (!colorSum[user.lamp_id]) {
+                    colorSum[user.lamp_id] = { r: 0, g: 0, b: 0 };
+                    peopleTalking[user.lamp_id] = 0;
+                }
+                if (user.active === true) {
+                    colorSum[user.lamp_id].r += user.color.r;
+                    colorSum[user.lamp_id].g += user.color.g;
+                    colorSum[user.lamp_id].b += user.color.b;
+                    peopleTalking[user.lamp_id]++;
+                }
+            }
+        }
+        for (const lamp in colorSum) {
+            if (colorSum.hasOwnProperty(lamp)) {
+                var color = colorSum[lamp];
+                if (peopleTalking[lamp] != 0) {
+                    color.r /= peopleTalking[lamp];
+                    color.g /= peopleTalking[lamp];
+                    color.b /= peopleTalking[lamp];
+                }
+                hue.setColorLight(lamp, color.r, color.g, color.b);
+            }
+        }
+    }
+
+
     hue.loadAllLights().then(() => {
-        hue.setColorLight(1, 0, 0, 0);
+        hue.setColorLight(settings.lamp_id, 0, 0, 0);
     }).then(() => {
         const discord = new Discord(settings.bot_token);
         var activeChannels = {};
@@ -98,23 +135,19 @@ if (!settings.auth_token) {
                                 discord.openVoiceChannel(data.d.guild_id, channel_id);
                                 discord.on("voiceInitiated", () => {
                                     discord.voiceConnection.on("speekstart", user => {
-                                        console.log(user.username + " started speaking");
-                                        if (!user.bot) {
-                                            if (!knownUsers[user.id]) {
-                                                knownUsers[user.id] = { ...user, lamp_id: 1, color: settings.lamp_colors[usersNum % settings.lamp_colors.length] };
-                                                usersNum++;
-                                            }
-                                            hue.addToLight(knownUsers[user.id].lamp_id, knownUsers[user.id].color);
+                                        if (user) {
+                                            console.log(user.username + " started speaking");
+                                            //if (!user.bot) {
+                                            calculateAndSetNewColor(user, true);
+                                            //}
                                         }
                                     });
                                     discord.voiceConnection.on("speekend", user => {
-                                        console.log(user.username + " stopped speaking");
-                                        if (!user.bot) {
-                                            if (!knownUsers[user.id]) {
-                                                knownUsers[user.id] = { ...user, lamp_id: 1, color: settings.lamp_colors[usersNum % settings.lamp_colors.length] };
-                                                usersNum++;
-                                            }
-                                            hue.subtractFromLight(knownUsers[user.id].lamp_id, { r: 0, g: 0, b: 0 });
+                                        if (user) {
+                                            console.log(user.username + " stopped speaking");
+                                            //if (!user.bot) {
+                                            calculateAndSetNewColor(user, false);
+                                            //}
                                         }
                                     });
                                 })

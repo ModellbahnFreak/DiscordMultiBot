@@ -20,30 +20,13 @@ class HueAPI {
         return new Promise((resolve, fail) => {
             this.getRequest("/lights").then(lights => {
                 this.knownLights = lights;
+                for (const key in this.knownLights) {
+                    if (this.knownLights.hasOwnProperty(key)) {
+                        var element = this.knownLights[key];
+                    }
+                }
                 resolve(lights);
             }).catch(fail);
-        });
-    }
-
-    subtractFromLight(light_id, rgb) {
-        return new Promise((resolve, fail) => {
-            if (this.knownLights[light_id] && this.knownLights[light_id].type == "Extended color light") {
-                var light = this.knownLights[light_id];
-                this.setColorLight(light_id, light.state.r + rgb.r, light.state.g + rgb.g, light.state.b + rgb.b).then(resolve).catch(fail);
-            } else {
-                fail("The lamp doesn't exist or isn't a color lamp");
-            }
-        });
-    }
-
-    addToLight(light_id, rgb) {
-        return new Promise((resolve, fail) => {
-            if (this.knownLights[light_id] && this.knownLights[light_id].type == "Extended color light") {
-                var light = this.knownLights[light_id];
-                this.setColorLight(light_id, light.state.r - rgb.r, light.state.g - rgb.g, light.state.b - rgb.b).then(resolve).catch(fail);
-            } else {
-                fail("The lamp doesn't exist or isn't a color lamp");
-            }
         });
     }
 
@@ -53,6 +36,9 @@ class HueAPI {
 
     setColorLight(light_id, red, green, blue) {
         return new Promise((resolve, fail) => {
+            red = Math.max(Math.min(red, 1), 0);
+            green = Math.max(Math.min(green, 1), 0);
+            blue = Math.max(Math.min(blue, 1), 0);
             if (this.knownLights[light_id]) {
                 var light = this.knownLights[light_id];
                 if (red == 0 && green == 0 && blue == 0) {
@@ -70,9 +56,14 @@ class HueAPI {
                         if (light.type == "Extended color light") {
                             const hsv = HueAPI.rgbToHsv({ r: red, g: green, b: blue });
                             const hsvScale = {
-                                hue: hsv.h * 65535,
-                                sat: hsv * 254,
-                                bri: hsv * 254
+                                hue: Math.floor(hsv.h * 65535),
+                                sat: Math.floor(hsv.s * 254),
+                                bri: Math.floor(hsv.v * 254)
+                            }
+                            console.log({ r: red, g: green, b: blue });
+                            console.log(hsvScale);
+                            if (hsvScale.hue > 65535 || hsvScale.hue < 0 || hsvScale.sat > 254 || hsvScale.sat < 1 || hsvScale.bri > 254 || hsvScale.bri < 1) {
+                                console.error("Wrong hsv data");
                             }
                             this.httpsRequest("PUT", "/lights/" + light_id + "/state", hsvScale).then((data) => {
                                 if (data.length == 3 && data[0].success && data[1].success && data[2].success) {
@@ -82,8 +73,9 @@ class HueAPI {
                                     light.state.r = red;
                                     light.state.g = green;
                                     light.state.b = blue;
-                                    resolve("#" + red.toString(16) + green.toString(16) + bue.toString(16));
+                                    resolve("#" + red.toString(16) + green.toString(16) + blue.toString(16));
                                 } else {
+                                    console.log(data);
                                     fail("Light has not switched to correct color");
                                 }
                             }).catch(fail);
@@ -261,7 +253,7 @@ class HueAPI {
         if (rgb.r >= maxRGB) {
             hsv.h = (rgb.g - rgb.b) / constrast;
         } else {
-            if (rgb.g >= max) {
+            if (rgb.g >= maxRGB) {
                 hsv.h = 2.0 + (rgb.b - rgb.r) / constrast;
             } else {
                 hsv.h = 4.0 + (rgb.r - rgb.g) / constrast;
@@ -271,7 +263,7 @@ class HueAPI {
         hsv.h /= 6;
 
         if (hsv.h < 0.0) {
-            hsv.h += 65535.0;
+            hsv.h += 1.0;
         }
 
         return hsv;
