@@ -1,0 +1,24 @@
+{
+  "name": "0x6849-bot",
+  "version": "1.0.0",
+  "description": "A multipurpose dicord bot",
+  "main": "index.js",
+  "dependencies": {
+    "ws": "^7.2.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node index.js",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ModellbahnFreak/DiscordMultiBot.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ModellbahnFreak/DiscordMultiBot/issues"
+  },
+  "homepage": "https://github.com/ModellbahnFreak/DiscordMultiBot#readme"
+}
