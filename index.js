@@ -61,9 +61,12 @@ if (!settings.auth_token) {
     }
 } else {
     var knownUsers = {};
+    var activeColor = { r: 0, g: 0, b: 0 };
     var usersNum = 0;
     const hue = new HueAPI(settings.hue_bridge_ip, settings.hue_bridge_key);
     hue.loadAllLights().then(() => {
+        hue.setColorLight(1, 0, 0, 0);
+    }).then(() => {
         const discord = new Discord(settings.bot_token);
         var activeChannels = {};
         discord.onmessagecreate = (data) => {
@@ -96,19 +99,23 @@ if (!settings.auth_token) {
                                 discord.on("voiceInitiated", () => {
                                     discord.voiceConnection.on("speekstart", user => {
                                         console.log(user.username + " started speaking");
-                                        if (!knownUsers[user.id]) {
-                                            knownUsers[user.id] = { ...user, lamp_id: 1, color: settings.lamp_colors[usersNum % settings.lamp_colors.length] };
-                                            usersNum++;
+                                        if (!user.bot) {
+                                            if (!knownUsers[user.id]) {
+                                                knownUsers[user.id] = { ...user, lamp_id: 1, color: settings.lamp_colors[usersNum % settings.lamp_colors.length] };
+                                                usersNum++;
+                                            }
+                                            hue.addToLight(knownUsers[user.id].lamp_id, knownUsers[user.id].color);
                                         }
-                                        hue.setLightRgb(knownUsers[user.id].lamp_id, knownUsers[user.id].color);
                                     });
                                     discord.voiceConnection.on("speekend", user => {
                                         console.log(user.username + " stopped speaking");
-                                        if (!knownUsers[user.id]) {
-                                            knownUsers[user.id] = { ...user, lamp_id: 1, color: settings.lamp_colors[usersNum % settings.lamp_colors.length] };
-                                            usersNum++;
+                                        if (!user.bot) {
+                                            if (!knownUsers[user.id]) {
+                                                knownUsers[user.id] = { ...user, lamp_id: 1, color: settings.lamp_colors[usersNum % settings.lamp_colors.length] };
+                                                usersNum++;
+                                            }
+                                            hue.subtractFromLight(knownUsers[user.id].lamp_id, { r: 0, g: 0, b: 0 });
                                         }
-                                        hue.setLightRgb(knownUsers[user.id].lamp_id, { r: 0, g: 0, b: 0 });
                                     });
                                 })
                             });

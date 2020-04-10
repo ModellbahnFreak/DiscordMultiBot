@@ -25,6 +25,28 @@ class HueAPI {
         });
     }
 
+    subtractFromLight(light_id, rgb) {
+        return new Promise((resolve, fail) => {
+            if (this.knownLights[light_id] && this.knownLights[light_id].type == "Extended color light") {
+                var light = this.knownLights[light_id];
+                this.setColorLight(light_id, light.state.r + rgb.r, light.state.g + rgb.g, light.state.b + rgb.b).then(resolve).catch(fail);
+            } else {
+                fail("The lamp doesn't exist or isn't a color lamp");
+            }
+        });
+    }
+
+    addToLight(light_id, rgb) {
+        return new Promise((resolve, fail) => {
+            if (this.knownLights[light_id] && this.knownLights[light_id].type == "Extended color light") {
+                var light = this.knownLights[light_id];
+                this.setColorLight(light_id, light.state.r - rgb.r, light.state.g - rgb.g, light.state.b - rgb.b).then(resolve).catch(fail);
+            } else {
+                fail("The lamp doesn't exist or isn't a color lamp");
+            }
+        });
+    }
+
     setLightRgb(light_id, color) {
         this.setColorLight(light_id, color.r, color.g, color.b);
     }
@@ -34,7 +56,15 @@ class HueAPI {
             if (this.knownLights[light_id]) {
                 var light = this.knownLights[light_id];
                 if (red == 0 && green == 0 && blue == 0) {
-                    this.switchLightState(light_id, false).then(resolve("#000000")).catch(fail);
+                    this.switchLightState(light_id, false).then(() => {
+                        light.state.hue = 0;
+                        light.state.sat = 0;
+                        light.state.bri = 0;
+                        light.state.r = 0;
+                        light.state.g = 0;
+                        light.state.b = 0;
+                        resolve("#000000");
+                    }).catch(fail);
                 } else {
                     this.switchLightState(light_id, true).then(() => {
                         if (light.type == "Extended color light") {
@@ -46,9 +76,12 @@ class HueAPI {
                             }
                             this.httpsRequest("PUT", "/lights/" + light_id + "/state", hsvScale).then((data) => {
                                 if (data.length == 3 && data[0].success && data[1].success && data[2].success) {
-                                    this.knownLights[light_id].state.hue = hsvScale.hue;
-                                    this.knownLights[light_id].state.sat = hsvScale.sat;
-                                    this.knownLights[light_id].state.bri = hsvScale.bri;
+                                    light.state.hue = hsvScale.hue;
+                                    light.state.sat = hsvScale.sat;
+                                    light.state.bri = hsvScale.bri;
+                                    light.state.r = red;
+                                    light.state.g = green;
+                                    light.state.b = blue;
                                     resolve("#" + red.toString(16) + green.toString(16) + bue.toString(16));
                                 } else {
                                     fail("Light has not switched to correct color");
@@ -226,16 +259,16 @@ class HueAPI {
             return hsv;
         }
         if (rgb.r >= maxRGB) {
-            hsv.h = (rgb.g - rgb.b) / constrast; //between yellow & magenta
+            hsv.h = (rgb.g - rgb.b) / constrast;
         } else {
             if (rgb.g >= max) {
-                hsv.h = 2.0 + (rgb.b - rgb.r) / constrast; //between cyan & yellow
+                hsv.h = 2.0 + (rgb.b - rgb.r) / constrast;
             } else {
-                hsv.h = 4.0 + (rgb.r - rgb.g) / constrast; //between magenta & cyan
+                hsv.h = 4.0 + (rgb.r - rgb.g) / constrast;
             }
         }
 
-        hsv.h /= 6; // degrees
+        hsv.h /= 6;
 
         if (hsv.h < 0.0) {
             hsv.h += 65535.0;
