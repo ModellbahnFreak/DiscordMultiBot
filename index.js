@@ -71,8 +71,12 @@ if (!settings.auth_token) {
 
     function calculateAndSetNewColor(user, active) {
         if (!knownUsers[user.id]) {
-            knownUsers[user.id] = { ...user, lamp_id: settings.lamp_id, color: settings.lamp_colors[usersNum % settings.lamp_colors.length], active: active };
-            usersNum++;
+            if(settings.userColors[user.username]) {
+                knownUsers[user.id] = { ...user, lamp_id: settings.lamp_id, color: settings.userColors[user.username], active: active };
+            } else {
+                knownUsers[user.id] = { ...user, lamp_id: settings.lamp_id, color: settings.lamp_colors[usersNum % settings.lamp_colors.length], active: active };
+                usersNum++;
+            }
         }
         knownUsers[user.id].active = active;
         var colorSum = {}
