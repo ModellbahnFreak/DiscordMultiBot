@@ -2,12 +2,13 @@ const mqtt = require('mqtt')
 
 class MqttApi {
     constructor(bridge_ip, api_key) {
-        this.client = mqtt.connect('mqtt://noradiator:1883');
+        this.topic = api_key;
+        this.client = mqtt.connect(bridge_ip);
     }
     setColorLight(lamp, r, g, b) {
         var cs="#"+Math.floor(r*255).toString(16).padStart(2,"0")+Math.floor(g*255).toString(16).padStart(2,"0")+Math.floor(b*255).toString(16).padStart(2,"0");
         console.log(cs);
-        this.client.publish('/panzerglas/2/COLOR', cs);
+        this.client.publish(this.topic, cs);
     }
     loadAllLights() {
         let self = this;
