@@ -4,6 +4,7 @@
   "description": "A multipurpose dicord bot",
   "main": "index.js",
   "dependencies": {
+    "mqtt": "^4.0.0",
     "ws": "^7.2.3"
   },
   "devDependencies": {},

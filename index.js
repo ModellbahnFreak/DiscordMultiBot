@@ -4,7 +4,12 @@ const settings = require("./settings");
 const fs = require("fs");
 const Discord = require("./discordApi");
 const Speech = require("./discordSpeech");
-const HueAPI = require("./hueApi");
+var HueAPI;
+if(settings.use_mqtt) {
+    HueAPI = require("./mqttApi");
+} else {
+    HueAPI = require("./hueApi");
+}
 
 if (!settings.auth_token) {
     const oauthUrl = "https://discordapp.com/api/oauth2/authorize?response_type=token&client_id=" + settings.client_id + "&permissions=1677197120&redirect_uri=" + encodeURIComponent(settings.response_uri) + "&scope=bot";
@@ -108,7 +113,7 @@ if (!settings.auth_token) {
         var activeChannels = {};
         discord.onmessagecreate = (data) => {
             if (data.d.guild_id) {
-                if (data.d.content == "/start") {
+                if (data.d.content == settings.start_command) {
                     if (!activeChannels[data.d.channel_id]) {
                         activeChannels[data.d.channel_id] = {
                             playlist: ["test.wav"],
@@ -125,7 +130,7 @@ if (!settings.auth_token) {
                         discord.sendMessage("Goodbye", data.d.channel_id);
                     } else {
                     }
-                } else if (data.d.content.startsWith("/join")) {
+                } else if (data.d.content.startsWith(settings.join_command)) {
                     if (activeChannels[data.d.channel_id]) {
                         const parts = data.d.content.split(" ");
                         if (parts.length == 2) {

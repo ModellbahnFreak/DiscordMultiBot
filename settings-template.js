@@ -10,6 +10,8 @@ var data = {
         { r: 0, g: 1, b: 0 },
         { r: 0, g: 0, b: 1 },
     ],
+    start_command: "/start",
+    join_command: "/join",
 }
 
 module.exports = data;
